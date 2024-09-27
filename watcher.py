@@ -14,7 +14,11 @@ bot = Bot(API_TOKEN)
 
 def start_bot():
     """Start the bot script as a subprocess."""
-    return subprocess.Popen(['python', 'm.py'])
+    try:
+        return subprocess.Popen(['python', 'm.py'])
+    except Exception as e:
+        logging.error("Failed to start bot subprocess: %s", e)
+        return None
 
 async def notify_admin(message):
     """Send a notification message to the admin via Telegram."""
@@ -42,16 +46,20 @@ async def main():
 
         logging.info("Starting the bot...")
         process = start_bot()
-        await notify_admin("🚀 Bot is starting...")
+        
+        if process:
+            await notify_admin("🚀 Bot is starting...")
 
-        while process.poll() is None:
-            await asyncio.sleep(5)
-        
-        logging.warning("Bot process terminated. Restarting in 10 seconds...")
-        await notify_admin("⚠️ The bot has crashed and will be restarted in 10 seconds.")
-        restart_count += 1
-        await asyncio.sleep(10)
-        
+            while process.poll() is None:
+                await asyncio.sleep(5)
+            
+            logging.warning("Bot process terminated. Restarting in 10 seconds...")
+            await notify_admin("⚠️ The bot has crashed and will be restarted in 10 seconds.")
+            restart_count += 1
+            await asyncio.sleep(10)
+        else:
+            logging.error("Bot subprocess could not be started. Waiting before retrying...")
+            await asyncio.sleep(60)  # Wait before retrying if subprocess fails to start
 
 if __name__ == '__main__':
     try:
